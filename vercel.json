@@ -2,8 +2,8 @@
   "version": 2,
   "functions": {
     "api/*.js": {
-      "memory": 1024,
-      "maxDuration": 60
+      "memory": 3008,
+      "maxDuration": 120
     }
   },
   "routes": [
@@ -15,6 +15,6 @@
   ],
   "env": {
     "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true",
-    "CHROMIUM_PATH": "https://github.com/Sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar"
+    "NODE_OPTIONS": "--max-old-space-size=3008"
   }
 }
