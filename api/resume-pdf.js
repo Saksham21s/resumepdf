@@ -1,5 +1,5 @@
-const puppeteer = require('puppeteer-core');
 const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
 
 module.exports = async (req, res) => {
   // Set CORS headers
