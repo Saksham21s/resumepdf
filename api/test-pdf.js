@@ -24,6 +24,7 @@ module.exports = async (req, res) => {
     chromium.setHeadlessMode = true;
     // Important: Do NOT use setGraphicsMode = true as it causes the fonts.tar.br issue
     
+<<<<<<< HEAD
     // Use a specific version that's known to work
     const CHROMIUM_VERSION = "119.0.2";
     const executablePath = await chromium.executablePath(`https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.tar`);
@@ -31,12 +32,19 @@ module.exports = async (req, res) => {
     console.log(`Using Chromium from: ${executablePath}`);
     
     // Launch browser with minimal configuration
+=======
+    const executablePath = await chromium.executablePath();
+    console.log(`Using Chromium from: ${executablePath}`);
+    
+    // Launch browser
+>>>>>>> 3774742a2b33d574b9fbf4861f827b65c32dbf1a
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
+<<<<<<< HEAD
         '--disable-features=IsolateOrigins',
         '--disable-site-isolation-trials'
       ],
@@ -45,6 +53,13 @@ module.exports = async (req, res) => {
         height: 1696,
         deviceScaleFactor: 1
       },
+=======
+        '--disable-gpu',
+        '--font-render-hinting=none',
+        '--disable-web-security'
+      ],
+      defaultViewport: chromium.defaultViewport,
+>>>>>>> 3774742a2b33d574b9fbf4861f827b65c32dbf1a
       executablePath: executablePath,
       headless: true,
       ignoreHTTPSErrors: true,
@@ -53,19 +68,40 @@ module.exports = async (req, res) => {
     // Create a new page
     const page = await browser.newPage();
     
+<<<<<<< HEAD
     // Simple test HTML with system fonts
+=======
+    // Simple test HTML
+>>>>>>> 3774742a2b33d574b9fbf4861f827b65c32dbf1a
     const testHtml = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
         <style>
+<<<<<<< HEAD
           body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             margin: 0; 
             padding: 20px;
           }
           
+=======
+          @font-face {
+            font-family: 'System';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: local('Arial'), local('Helvetica'), local('sans-serif');
+          }
+          
+          body { 
+            font-family: 'System', Arial, Helvetica, sans-serif; 
+            margin: 0; 
+            padding: 20px;
+          }
+          
+>>>>>>> 3774742a2b33d574b9fbf4861f827b65c32dbf1a
           h1 {
             color: #2c3e50;
           }
@@ -83,12 +119,24 @@ module.exports = async (req, res) => {
       </html>
     `;
     
+<<<<<<< HEAD
     // Set content with simplified wait options
     await page.setContent(testHtml, {
       waitUntil: 'domcontentloaded',
       timeout: 30000
     });
     
+=======
+    // Set content
+    await page.setContent(testHtml, {
+      waitUntil: ['domcontentloaded', 'networkidle0'],
+      timeout: 30000
+    });
+    
+    // Wait a bit to ensure rendering is complete
+    await page.waitForTimeout(1000);
+    
+>>>>>>> 3774742a2b33d574b9fbf4861f827b65c32dbf1a
     console.log('Generating test PDF...');
     
     // Generate PDF
