@@ -1,6 +1,7 @@
 const chromium = require('@sparticuz/chromium-min');
 const puppeteer = require('puppeteer-core');
-
+const fs = require('fs');
+const path = require('path');
 
 module.exports = async (req, res) => {
   // Set CORS headers
@@ -50,26 +51,30 @@ module.exports = async (req, res) => {
 
     console.log('Launching browser...');
     
-    // Configure chromium
+    // Configure chromium with improved settings
     chromium.setHeadlessMode = true;
-    // Important: Set graphics mode to true to avoid font issues
     chromium.setGraphicsMode = true;
     
-    // Use a specific version that we know works
-    const chromiumPath = "https://github.com/Sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar";
-    console.log(`Using Chromium from: ${chromiumPath}`);
+    // Use the latest compatible version
+    const executablePath = await chromium.executablePath();
     
-    // Launch headless browser using chromium-min with simplified configuration
+    console.log(`Using Chromium executable path: ${executablePath}`);
+    
+    // Launch headless browser with enhanced configuration
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--font-render-hinting=none'
+        '--disable-gpu',
+        '--font-render-hinting=none',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--disable-site-isolation-trials'
       ],
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(chromiumPath),
+      executablePath: executablePath,
       headless: true,
       ignoreHTTPSErrors: true,
     });
@@ -77,17 +82,29 @@ module.exports = async (req, res) => {
     // Create a new page
     const page = await browser.newPage();
     
-    // Use a simple HTML content if the provided one is too complex
-    const simpleHtml = `
+    // Enhanced HTML with font-display strategy and web-safe fonts
+    const enhancedHtml = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
         <style>
+          @font-face {
+            font-family: 'System';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: local('Arial'), local('Helvetica'), local('sans-serif');
+          }
+          
           body { 
-            font-family: Arial, sans-serif; 
+            font-family: 'System', Arial, Helvetica, sans-serif; 
             margin: 0; 
             padding: 20px;
+          }
+          
+          * {
+            font-family: 'System', Arial, Helvetica, sans-serif;
           }
         </style>
       </head>
@@ -97,23 +114,21 @@ module.exports = async (req, res) => {
       </html>
     `;
     
-    // Set content with simplified wait options
-    await page.setContent(simpleHtml, {
-      waitUntil: 'domcontentloaded'
+    // Wait for network idle to ensure all resources are loaded
+    await page.setContent(enhancedHtml, {
+      waitUntil: ['domcontentloaded', 'networkidle0'],
+      timeout: 30000
     });
+    
+    // Wait a bit to ensure rendering is complete
+    await page.waitForTimeout(1000);
     
     console.log('Generating PDF...');
     
-    // Generate PDF with simplified options
+    // Generate PDF with optimized options
     const pdfBuffer = await page.pdf({
-      format: 'a4',
-      printBackground: true,
-      margin: {
-        top: '20mm',
-        right: '20mm',
-        bottom: '20mm',
-        left: '20mm'
-      }
+      ...mergedPdfOptions,
+      timeout: 60000
     });
 
     // Close browser
