@@ -15,6 +15,7 @@
   ],
   "env": {
     "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true",
-    "CHROMIUM_PATH": "https://github.com/Sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar"
+    "NODE_OPTIONS": "--max-old-space-size=3008",
+    "CHROMIUM_VERSION": "119.0.2"
   }
 }

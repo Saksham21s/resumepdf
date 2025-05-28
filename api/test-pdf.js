@@ -5,63 +5,91 @@ module.exports = async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
+  // Handle OPTIONS request
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   try {
     console.log('Starting test PDF generation...');
     
-    // Configure chromium
+    // Configure chromium with specific settings for Vercel
     chromium.setHeadlessMode = true;
-    chromium.setGraphicsMode = true;
+    // Important: Do NOT use setGraphicsMode = true as it causes the fonts.tar.br issue
     
-    console.log('Launching browser...');
+    // Use a specific version that's known to work
+    const CHROMIUM_VERSION = "119.0.2";
+    const executablePath = await chromium.executablePath(`https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.tar`);
     
-    // Launch headless browser using chromium-min with simplified configuration
+    console.log(`Using Chromium from: ${executablePath}`);
+    
+    // Launch browser with minimal configuration
     const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath("https://github.com/Sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar"),
+      args: [
+        ...chromium.args,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-features=IsolateOrigins',
+        '--disable-site-isolation-trials'
+      ],
+      defaultViewport: {
+        width: 1280,
+        height: 1696,
+        deviceScaleFactor: 1
+      },
+      executablePath: executablePath,
       headless: true,
+      ignoreHTTPSErrors: true,
     });
 
     // Create a new page
     const page = await browser.newPage();
     
-    // Very simple HTML content
-    const simpleHtml = `
+    // Simple test HTML with system fonts
+    const testHtml = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Test PDF</title>
         <style>
-          body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0; 
+            padding: 20px;
           }
+          
           h1 {
-            color: #333;
+            color: #2c3e50;
+          }
+          
+          p {
+            color: #34495e;
           }
         </style>
       </head>
       <body>
-        <h1>Test PDF Generation</h1>
-        <p>This is a simple test PDF generated with Puppeteer and Chromium.</p>
+        <h1>PDF Generation Test</h1>
+        <p>This is a test PDF generated using Puppeteer and Chromium on Vercel.</p>
         <p>Current time: ${new Date().toISOString()}</p>
       </body>
       </html>
     `;
     
-    // Set content
-    await page.setContent(simpleHtml, {
-      waitUntil: 'domcontentloaded'
+    // Set content with simplified wait options
+    await page.setContent(testHtml, {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
     });
     
-    console.log('Generating PDF...');
+    console.log('Generating test PDF...');
     
     // Generate PDF
     const pdfBuffer = await page.pdf({
@@ -72,7 +100,8 @@ module.exports = async (req, res) => {
         right: '20mm',
         bottom: '20mm',
         left: '20mm'
-      }
+      },
+      timeout: 60000
     });
 
     // Close browser
@@ -87,6 +116,6 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     console.error('Error generating test PDF:', error);
-    res.status(500).json({ error: 'Failed to generate test PDF', details: error.message, stack: error.stack });
+    res.status(500).json({ error: 'Failed to generate test PDF', details: error.message });
   }
 }; 

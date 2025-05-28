@@ -123,7 +123,7 @@ vercel
 ```
 
 3. Set environment variables in Vercel:
-- `NODE_ENV`: `production`
+- `y`: `production`
 
 4. After deployment, you can use the API URL in your resume builder application.
 
