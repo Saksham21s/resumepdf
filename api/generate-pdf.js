@@ -1,4 +1,4 @@
-const chromium = require('@sparticuz/chromium');
+const chromium = require('@sparticuz/chromium-min');
 const puppeteer = require('puppeteer-core');
 
 
@@ -50,46 +50,48 @@ module.exports = async (req, res) => {
 
     console.log('Launching browser...');
     
-    // Launch headless browser using chromium with memory-optimized configuration
-    // and specific flags to handle missing libraries
+    // Configure chromium
+    chromium.setHeadlessMode = true;
+    chromium.setGraphicsMode = false;
+    
+    const chromiumPath = process.env.CHROMIUM_PATH || "https://github.com/Sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar";
+    console.log(`Using Chromium from: ${chromiumPath}`);
+    
+    // Launch headless browser using chromium-min
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
         '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--single-process',
-        '--disable-gpu',
-        '--font-render-hinting=none',
-        '--disable-web-security',
-        '--disable-features=site-per-process',
-        '--disable-extensions',
-        '--disable-sync',
-        '--no-zygote'
+        '--disable-setuid-sandbox'
       ],
       defaultViewport: {
         width: 794,
         height: 1123,
-        deviceScaleFactor: 1.5
+        deviceScaleFactor: 1
       },
-      executablePath: await chromium.executablePath(
-        "https://github.com/Sparticuz/chromium/releases/download/v123.0.0/chromium-v123.0.0-pack.tar"
-      ),
-      headless: chromium.headless,
+      executablePath: await chromium.executablePath(chromiumPath),
+      headless: true,
       ignoreHTTPSErrors: true,
     });
 
     // Create a new page
     const page = await browser.newPage();
     
-    // Set content with optimized wait options
+    // Set content with minimal wait options
     await page.setContent(htmlContent, {
       waitUntil: 'domcontentloaded',
       timeout: 30000
     });
 
-    // Wait for any fonts to load
-    await page.evaluateHandle('document.fonts.ready');
+    // Wait for any fonts to load with a timeout
+    try {
+      await Promise.race([
+        page.evaluateHandle('document.fonts.ready'),
+        new Promise(resolve => setTimeout(resolve, 5000))
+      ]);
+    } catch (e) {
+      console.log('Font loading timed out, continuing anyway');
+    }
     
     console.log('Generating PDF...');
     

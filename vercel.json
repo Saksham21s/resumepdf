@@ -11,5 +11,9 @@
     { "src": "/resume-pdf", "dest": "/api/index.js" },
     { "src": "/render-template", "dest": "/api/index.js" },
     { "src": "/", "dest": "/index.html" }
-  ]
+  ],
+  "env": {
+    "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true",
+    "CHROMIUM_PATH": "https://github.com/Sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar"
+  }
 }
