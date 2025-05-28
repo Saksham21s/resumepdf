@@ -1,0 +1,16 @@
+{
+  "name": "resume-pdf-api",
+  "version": "1.0.0",
+  "description": "API for generating PDF resumes",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+"dependencies": {
+  "puppeteer-core": "^24.9.0",
+  "@sparticuz/chromium": "^123.0.0"
+},
+  "engines": {
+    "node": ">=18.x"
+  }
+} 
