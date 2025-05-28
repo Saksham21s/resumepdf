@@ -51,6 +51,7 @@ module.exports = async (req, res) => {
     console.log('Launching browser...');
     
     // Launch headless browser using chromium with memory-optimized configuration
+    // and specific flags to handle missing libraries
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
@@ -59,14 +60,21 @@ module.exports = async (req, res) => {
         '--disable-dev-shm-usage',
         '--single-process',
         '--disable-gpu',
-        '--js-flags=--max-old-space-size=512'
+        '--font-render-hinting=none',
+        '--disable-web-security',
+        '--disable-features=site-per-process',
+        '--disable-extensions',
+        '--disable-sync',
+        '--no-zygote'
       ],
       defaultViewport: {
         width: 794,
         height: 1123,
         deviceScaleFactor: 1.5
       },
-      executablePath: await chromium.executablePath(),
+      executablePath: await chromium.executablePath(
+        "https://github.com/Sparticuz/chromium/releases/download/v123.0.0/chromium-v123.0.0-pack.tar"
+      ),
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
     });
