@@ -51,29 +51,32 @@ module.exports = async (req, res) => {
 
     console.log('Launching browser...');
     
-    // Configure chromium with improved settings
+    // Configure chromium with specific settings for Vercel
     chromium.setHeadlessMode = true;
+    // Important: Set graphics mode to true to avoid font issues
     chromium.setGraphicsMode = true;
     
-    // Use the latest compatible version
-    const executablePath = await chromium.executablePath();
+    // Use a specific version that's known to work
+    const CHROMIUM_VERSION = "119.0.2";
+    const executablePath = await chromium.executablePath(`https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.tar`);
     
     console.log(`Using Chromium executable path: ${executablePath}`);
     
-    // Launch headless browser with enhanced configuration
+    // Launch headless browser with minimal configuration
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--font-render-hinting=none',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process',
+        '--disable-features=IsolateOrigins',
         '--disable-site-isolation-trials'
       ],
-      defaultViewport: chromium.defaultViewport,
+      defaultViewport: {
+        width: 1280,
+        height: 1696,
+        deviceScaleFactor: 1
+      },
       executablePath: executablePath,
       headless: true,
       ignoreHTTPSErrors: true,
@@ -82,29 +85,17 @@ module.exports = async (req, res) => {
     // Create a new page
     const page = await browser.newPage();
     
-    // Enhanced HTML with font-display strategy and web-safe fonts
-    const enhancedHtml = `
+    // Use a simpler HTML wrapper with system fonts
+    const wrappedHtml = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
         <style>
-          @font-face {
-            font-family: 'System';
-            font-style: normal;
-            font-weight: 400;
-            font-display: swap;
-            src: local('Arial'), local('Helvetica'), local('sans-serif');
-          }
-          
           body { 
-            font-family: 'System', Arial, Helvetica, sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             margin: 0; 
-            padding: 20px;
-          }
-          
-          * {
-            font-family: 'System', Arial, Helvetica, sans-serif;
+            padding: 0;
           }
         </style>
       </head>
@@ -114,14 +105,11 @@ module.exports = async (req, res) => {
       </html>
     `;
     
-    // Wait for network idle to ensure all resources are loaded
-    await page.setContent(enhancedHtml, {
-      waitUntil: ['domcontentloaded', 'networkidle0'],
+    // Set content with simplified wait options
+    await page.setContent(wrappedHtml, {
+      waitUntil: 'domcontentloaded',
       timeout: 30000
     });
-    
-    // Wait a bit to ensure rendering is complete
-    await page.waitForTimeout(1000);
     
     console.log('Generating PDF...');
     
