@@ -1,7 +1,5 @@
 const chromium = require('@sparticuz/chromium-min');
 const puppeteer = require('puppeteer-core');
-const fs = require('fs');
-const path = require('path');
 
 module.exports = async (req, res) => {
   // Set CORS headers
@@ -32,48 +30,48 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Missing required parameter: htmlContent' });
     }
 
-    // Default PDF options
+    // Default PDF options - minimal settings for low resource usage
     const defaultPdfOptions = {
       format: 'a4',
       printBackground: true,
-      preferCSSPageSize: true,
       margin: {
-        top: '0mm',
-        right: '0mm',
-        bottom: '0mm',
-        left: '0mm'
+        top: '10mm',
+        right: '10mm',
+        bottom: '10mm',
+        left: '10mm'
       },
-      scale: 1
+      scale: 0.8, // Reduced scale for lower quality
+      omitBackground: true, // Omit background for faster rendering
     };
 
     // Merge default options with provided options
     const mergedPdfOptions = { ...defaultPdfOptions, ...pdfOptions };
 
-    console.log('Launching browser...');
+    console.log('Launching browser with minimal settings...');
     
-    // Configure chromium with specific settings for Vercel
+    // Configure chromium with minimal settings
     chromium.setHeadlessMode = true;
-    // Important: Do NOT use setGraphicsMode = true as it causes the fonts.tar.br issue
     
     // Use a specific version that's known to work
     const CHROMIUM_VERSION = "119.0.2";
     const executablePath = await chromium.executablePath(`https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.tar`);
     
-    console.log(`Using Chromium executable path: ${executablePath}`);
-    
-    // Launch headless browser with minimal configuration
+    // Launch headless browser with absolute minimal configuration
     const browser = await puppeteer.launch({
       args: [
-        ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-features=IsolateOrigins',
-        '--disable-site-isolation-trials'
+        '--disable-gpu',
+        '--disable-extensions',
+        '--disable-audio-output',
+        '--disable-remote-fonts',
+        '--font-render-hinting=none',
+        '--disable-web-security'
       ],
       defaultViewport: {
-        width: 1280,
-        height: 1696,
+        width: 800, // Smaller viewport
+        height: 1100,
         deviceScaleFactor: 1
       },
       executablePath: executablePath,
@@ -84,17 +82,18 @@ module.exports = async (req, res) => {
     // Create a new page
     const page = await browser.newPage();
     
-    // Use a simpler HTML wrapper with system fonts
-    const wrappedHtml = `
+    // Extremely simplified HTML with only basic styling
+    const minimalHtml = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
         <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            margin: 0; 
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
             padding: 0;
+            font-size: 12px;
           }
         </style>
       </head>
@@ -104,21 +103,23 @@ module.exports = async (req, res) => {
       </html>
     `;
     
-    // Set content with simplified wait options
-    await page.setContent(wrappedHtml, {
+    // Set content with minimal wait options
+    await page.setContent(minimalHtml, {
       waitUntil: 'domcontentloaded',
-      timeout: 30000
+      timeout: 20000
     });
     
-    console.log('Generating PDF...');
+    console.log('Generating minimal PDF...');
     
-    // Generate PDF with optimized options
+    // Generate PDF with minimal options
     const pdfBuffer = await page.pdf({
       ...mergedPdfOptions,
-      timeout: 60000
+      timeout: 30000,
+      printBackground: true,
+      preferCSSPageSize: false
     });
 
-    // Close browser
+    // Close browser immediately
     await browser.close();
 
     // Set response headers

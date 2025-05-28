@@ -18,48 +18,33 @@ module.exports = async (req, res) => {
   }
 
   try {
-    console.log('Starting test PDF generation...');
+    console.log('Starting minimal test PDF generation...');
     
-    // Configure chromium with specific settings for Vercel
+    // Configure chromium with minimal settings
     chromium.setHeadlessMode = true;
-    // Important: Do NOT use setGraphicsMode = true as it causes the fonts.tar.br issue
     
-<<<<<<< HEAD
     // Use a specific version that's known to work
     const CHROMIUM_VERSION = "119.0.2";
     const executablePath = await chromium.executablePath(`https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.tar`);
     
-    console.log(`Using Chromium from: ${executablePath}`);
-    
-    // Launch browser with minimal configuration
-=======
-    const executablePath = await chromium.executablePath();
-    console.log(`Using Chromium from: ${executablePath}`);
-    
-    // Launch browser
->>>>>>> 3774742a2b33d574b9fbf4861f827b65c32dbf1a
+    // Launch browser with absolute minimal configuration
     const browser = await puppeteer.launch({
       args: [
-        ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-<<<<<<< HEAD
-        '--disable-features=IsolateOrigins',
-        '--disable-site-isolation-trials'
-      ],
-      defaultViewport: {
-        width: 1280,
-        height: 1696,
-        deviceScaleFactor: 1
-      },
-=======
         '--disable-gpu',
+        '--disable-extensions',
+        '--disable-audio-output',
+        '--disable-remote-fonts',
         '--font-render-hinting=none',
         '--disable-web-security'
       ],
-      defaultViewport: chromium.defaultViewport,
->>>>>>> 3774742a2b33d574b9fbf4861f827b65c32dbf1a
+      defaultViewport: {
+        width: 800,
+        height: 1100,
+        deviceScaleFactor: 1
+      },
       executablePath: executablePath,
       headless: true,
       ignoreHTTPSErrors: true,
@@ -68,91 +53,52 @@ module.exports = async (req, res) => {
     // Create a new page
     const page = await browser.newPage();
     
-<<<<<<< HEAD
-    // Simple test HTML with system fonts
-=======
-    // Simple test HTML
->>>>>>> 3774742a2b33d574b9fbf4861f827b65c32dbf1a
-    const testHtml = `
+    // Ultra-minimal test HTML
+    const minimalHtml = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
         <style>
-<<<<<<< HEAD
           body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            margin: 0; 
-            padding: 20px;
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            font-size: 12px;
           }
-          
-=======
-          @font-face {
-            font-family: 'System';
-            font-style: normal;
-            font-weight: 400;
-            font-display: swap;
-            src: local('Arial'), local('Helvetica'), local('sans-serif');
-          }
-          
-          body { 
-            font-family: 'System', Arial, Helvetica, sans-serif; 
-            margin: 0; 
-            padding: 20px;
-          }
-          
->>>>>>> 3774742a2b33d574b9fbf4861f827b65c32dbf1a
-          h1 {
-            color: #2c3e50;
-          }
-          
-          p {
-            color: #34495e;
-          }
+          h1 { font-size: 16px; }
         </style>
       </head>
       <body>
-        <h1>PDF Generation Test</h1>
-        <p>This is a test PDF generated using Puppeteer and Chromium on Vercel.</p>
-        <p>Current time: ${new Date().toISOString()}</p>
+        <h1>PDF Test</h1>
+        <p>Basic PDF test. Time: ${new Date().toISOString()}</p>
       </body>
       </html>
     `;
     
-<<<<<<< HEAD
-    // Set content with simplified wait options
-    await page.setContent(testHtml, {
+    // Set content with minimal wait options
+    await page.setContent(minimalHtml, {
       waitUntil: 'domcontentloaded',
-      timeout: 30000
+      timeout: 20000
     });
     
-=======
-    // Set content
-    await page.setContent(testHtml, {
-      waitUntil: ['domcontentloaded', 'networkidle0'],
-      timeout: 30000
-    });
+    console.log('Generating minimal test PDF...');
     
-    // Wait a bit to ensure rendering is complete
-    await page.waitForTimeout(1000);
-    
->>>>>>> 3774742a2b33d574b9fbf4861f827b65c32dbf1a
-    console.log('Generating test PDF...');
-    
-    // Generate PDF
+    // Generate PDF with minimal options
     const pdfBuffer = await page.pdf({
       format: 'a4',
       printBackground: true,
       margin: {
-        top: '20mm',
-        right: '20mm',
-        bottom: '20mm',
-        left: '20mm'
+        top: '10mm',
+        right: '10mm',
+        bottom: '10mm',
+        left: '10mm'
       },
-      timeout: 60000
+      scale: 0.8,
+      omitBackground: true,
+      timeout: 30000
     });
 
-    // Close browser
+    // Close browser immediately
     await browser.close();
 
     // Set response headers
