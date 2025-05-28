@@ -2,8 +2,8 @@
   "version": 2,
   "functions": {
     "api/*.js": {
-      "memory": 3008,
-      "maxDuration": 120
+      "memory": 1024,
+      "maxDuration": 60
     }
   },
   "routes": [
@@ -15,11 +15,7 @@
   ],
   "env": {
     "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true",
-<<<<<<< HEAD
-    "NODE_OPTIONS": "--max-old-space-size=3008",
+    "NODE_OPTIONS": "--max-old-space-size=1024",
     "CHROMIUM_VERSION": "119.0.2"
-=======
-    "NODE_OPTIONS": "--max-old-space-size=3008"
->>>>>>> 3774742a2b33d574b9fbf4861f827b65c32dbf1a
   }
-}
+} 

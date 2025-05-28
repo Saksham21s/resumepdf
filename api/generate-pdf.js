@@ -53,8 +53,7 @@ module.exports = async (req, res) => {
     
     // Configure chromium with specific settings for Vercel
     chromium.setHeadlessMode = true;
-    // Important: Set graphics mode to true to avoid font issues
-    chromium.setGraphicsMode = true;
+    // Important: Do NOT use setGraphicsMode = true as it causes the fonts.tar.br issue
     
     // Use a specific version that's known to work
     const CHROMIUM_VERSION = "119.0.2";
