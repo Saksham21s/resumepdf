@@ -1,5 +1,6 @@
-const puppeteer = require('puppeteer-core');
 const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
+
 
 module.exports = async (req, res) => {
   // Set CORS headers
@@ -49,9 +50,19 @@ module.exports = async (req, res) => {
 
     console.log('Launching browser...');
     
-    // Launch headless browser using chromium
+    // Launch headless browser using chromium with enhanced configuration
     const browser = await puppeteer.launch({
-      args: chromium.args,
+      args: [
+        ...chromium.args,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ],
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
