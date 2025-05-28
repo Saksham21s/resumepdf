@@ -7,12 +7,9 @@
     }
   },
   "routes": [
-    { "src": "/generate-pdf", "dest": "/index.js" },
-    { "src": "/resume-pdf", "dest": "/index.js" },
-    { "src": "/render-template", "dest": "/index.js" },
-    { "src": "/(.*)", "dest": "/index.js" }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  }
-} 
+    { "src": "/generate-pdf", "dest": "/api/index.js" },
+    { "src": "/resume-pdf", "dest": "/api/index.js" },
+    { "src": "/render-template", "dest": "/api/index.js" },
+    { "src": "/", "dest": "/index.html" }
+  ]
+}
