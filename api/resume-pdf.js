@@ -41,38 +41,35 @@ module.exports = async (req, res) => {
       printBackground: true,
       preferCSSPageSize: true,
       margin: {
-        top: '0mm',
-        right: '0mm',
-        bottom: '0mm',
-        left: '0mm'
+        top: '5mm',
+        right: '5mm',
+        bottom: '5mm',
+        left: '5mm'
       },
       scale: customization.scale || 1
     };
-
-    // Merge default options with provided options
-    const mergedPdfOptions = { ...defaultPdfOptions, ...pdfOptions };
 
     console.log(`Generating PDF for template: ${templateId}`);
     
     // Configure chromium
     chromium.setHeadlessMode = true;
-    chromium.setGraphicsMode = false;
+    // Important: Set graphics mode to true to avoid font issues
+    chromium.setGraphicsMode = true;
     
-    const chromiumPath = process.env.CHROMIUM_PATH || "https://github.com/Sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar";
+    // Use a specific version that we know works
+    const chromiumPath = "https://github.com/Sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar";
     console.log(`Using Chromium from: ${chromiumPath}`);
     
-    // Launch headless browser using chromium-min
+    // Launch headless browser using chromium-min with simplified configuration
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
         '--no-sandbox',
-        '--disable-setuid-sandbox'
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--font-render-hinting=none'
       ],
-      defaultViewport: {
-        width: 794,
-        height: 1123,
-        deviceScaleFactor: 1
-      },
+      defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(chromiumPath),
       headless: true,
       ignoreHTTPSErrors: true,
@@ -84,50 +81,42 @@ module.exports = async (req, res) => {
     // Generate HTML content based on template data
     const htmlContent = generateResumeHtml(templateId, templateData, customization);
 
-    // Set content with minimal wait options
-    await page.setContent(htmlContent, {
-      waitUntil: 'domcontentloaded',
-      timeout: 30000
-    });
-
-    // Wait for any fonts to load with a timeout
-    try {
-      await Promise.race([
-        page.evaluateHandle('document.fonts.ready'),
-        new Promise(resolve => setTimeout(resolve, 5000))
-      ]);
-    } catch (e) {
-      console.log('Font loading timed out, continuing anyway');
-    }
+    // Use a simple wrapper for the HTML content
+    const simpleHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 0;
+          }
+          .resume-page {
+            page-break-after: always;
+            page-break-inside: avoid;
+          }
+          [data-page="2"], [data-page-number="2"] {
+            page-break-before: always;
+          }
+        </style>
+      </head>
+      <body>
+        ${htmlContent}
+      </body>
+      </html>
+    `;
     
-    // Apply custom styles and fixes for PDF rendering
-    await page.evaluate(() => {
-      // Add style to fix page breaks and improve PDF rendering
-      const style = document.createElement('style');
-      style.textContent = `
-        @page {
-          margin: 0;
-          size: A4;
-        }
-        body {
-          margin: 0;
-          padding: 0;
-        }
-        .resume-page {
-          page-break-after: always;
-          page-break-inside: avoid;
-        }
-        [data-page="2"], [data-page-number="2"] {
-          page-break-before: always;
-        }
-      `;
-      document.head.appendChild(style);
+    // Set content with simplified wait options
+    await page.setContent(simpleHtml, {
+      waitUntil: 'domcontentloaded'
     });
-
+    
     console.log('Generating PDF...');
     
-    // Generate PDF
-    const pdfBuffer = await page.pdf(mergedPdfOptions);
+    // Generate PDF with simplified options
+    const pdfBuffer = await page.pdf(defaultPdfOptions);
 
     // Close browser
     await browser.close();

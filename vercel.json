@@ -10,6 +10,7 @@
     { "src": "/generate-pdf", "dest": "/api/index.js" },
     { "src": "/resume-pdf", "dest": "/api/index.js" },
     { "src": "/render-template", "dest": "/api/index.js" },
+    { "src": "/test-pdf", "dest": "/api/test-pdf.js" },
     { "src": "/", "dest": "/index.html" }
   ],
   "env": {

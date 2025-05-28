@@ -52,23 +52,23 @@ module.exports = async (req, res) => {
     
     // Configure chromium
     chromium.setHeadlessMode = true;
-    chromium.setGraphicsMode = false;
+    // Important: Set graphics mode to true to avoid font issues
+    chromium.setGraphicsMode = true;
     
-    const chromiumPath = process.env.CHROMIUM_PATH || "https://github.com/Sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar";
+    // Use a specific version that we know works
+    const chromiumPath = "https://github.com/Sparticuz/chromium/releases/download/v119.0.0/chromium-v119.0.0-pack.tar";
     console.log(`Using Chromium from: ${chromiumPath}`);
     
-    // Launch headless browser using chromium-min
+    // Launch headless browser using chromium-min with simplified configuration
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
         '--no-sandbox',
-        '--disable-setuid-sandbox'
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--font-render-hinting=none'
       ],
-      defaultViewport: {
-        width: 794,
-        height: 1123,
-        deviceScaleFactor: 1
-      },
+      defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(chromiumPath),
       headless: true,
       ignoreHTTPSErrors: true,
@@ -77,26 +77,44 @@ module.exports = async (req, res) => {
     // Create a new page
     const page = await browser.newPage();
     
-    // Set content with minimal wait options
-    await page.setContent(htmlContent, {
-      waitUntil: 'domcontentloaded',
-      timeout: 30000
+    // Use a simple HTML content if the provided one is too complex
+    const simpleHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        ${htmlContent}
+      </body>
+      </html>
+    `;
+    
+    // Set content with simplified wait options
+    await page.setContent(simpleHtml, {
+      waitUntil: 'domcontentloaded'
     });
-
-    // Wait for any fonts to load with a timeout
-    try {
-      await Promise.race([
-        page.evaluateHandle('document.fonts.ready'),
-        new Promise(resolve => setTimeout(resolve, 5000))
-      ]);
-    } catch (e) {
-      console.log('Font loading timed out, continuing anyway');
-    }
     
     console.log('Generating PDF...');
     
-    // Generate PDF
-    const pdfBuffer = await page.pdf(mergedPdfOptions);
+    // Generate PDF with simplified options
+    const pdfBuffer = await page.pdf({
+      format: 'a4',
+      printBackground: true,
+      margin: {
+        top: '20mm',
+        right: '20mm',
+        bottom: '20mm',
+        left: '20mm'
+      }
+    });
 
     // Close browser
     await browser.close();
