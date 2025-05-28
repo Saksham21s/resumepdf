@@ -1,6 +1,59 @@
 const chromium = require('@sparticuz/chromium-min');
 const puppeteer = require('puppeteer-core');
 
+// Helper function to wait
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to launch browser with retries
+async function launchBrowserWithRetry(executablePath, maxRetries = 3) {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Browser launch attempt ${attempt}/${maxRetries}`);
+      
+      const browser = await puppeteer.launch({
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--disable-extensions',
+          '--disable-audio-output',
+          '--disable-remote-fonts',
+          '--font-render-hinting=none',
+          '--disable-web-security'
+        ],
+        defaultViewport: {
+          width: 800,
+          height: 1100,
+          deviceScaleFactor: 1
+        },
+        executablePath: executablePath,
+        headless: true,
+        ignoreHTTPSErrors: true,
+      });
+      
+      return browser;
+    } catch (error) {
+      console.error(`Attempt ${attempt} failed:`, error.message);
+      lastError = error;
+      
+      // If ETXTBSY error, wait before retrying
+      if (error.message.includes('ETXTBSY')) {
+        console.log('ETXTBSY error detected, waiting before retry...');
+        await wait(1000 * attempt); // Exponential backoff
+      } else {
+        // For other errors, wait a bit less
+        await wait(500);
+      }
+    }
+  }
+  
+  // If we get here, all attempts failed
+  throw new Error(`Failed to launch browser after ${maxRetries} attempts: ${lastError.message}`);
+}
+
 module.exports = async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -22,6 +75,8 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed. Please use POST.' });
   }
 
+  let browser = null;
+  
   try {
     // Extract data from request body
     const { htmlContent, pdfOptions = {} } = req.body;
@@ -40,8 +95,8 @@ module.exports = async (req, res) => {
         bottom: '10mm',
         left: '10mm'
       },
-      scale: 0.8, // Reduced scale for lower quality
-      omitBackground: true, // Omit background for faster rendering
+      scale: 0.8,
+      omitBackground: true,
     };
 
     // Merge default options with provided options
@@ -56,28 +111,8 @@ module.exports = async (req, res) => {
     const CHROMIUM_VERSION = "119.0.2";
     const executablePath = await chromium.executablePath(`https://github.com/Sparticuz/chromium/releases/download/v${CHROMIUM_VERSION}/chromium-v${CHROMIUM_VERSION}-pack.tar`);
     
-    // Launch headless browser with absolute minimal configuration
-    const browser = await puppeteer.launch({
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-extensions',
-        '--disable-audio-output',
-        '--disable-remote-fonts',
-        '--font-render-hinting=none',
-        '--disable-web-security'
-      ],
-      defaultViewport: {
-        width: 800, // Smaller viewport
-        height: 1100,
-        deviceScaleFactor: 1
-      },
-      executablePath: executablePath,
-      headless: true,
-      ignoreHTTPSErrors: true,
-    });
+    // Launch browser with retry logic
+    browser = await launchBrowserWithRetry(executablePath);
 
     // Create a new page
     const page = await browser.newPage();
@@ -120,7 +155,10 @@ module.exports = async (req, res) => {
     });
 
     // Close browser immediately
-    await browser.close();
+    if (browser) {
+      await browser.close();
+      browser = null;
+    }
 
     // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
@@ -131,6 +169,25 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     console.error('Error generating PDF:', error);
-    res.status(500).json({ error: 'Failed to generate PDF', details: error.message });
+    
+    // Always make sure browser is closed
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error('Error closing browser:', closeError);
+      }
+    }
+    
+    // Return appropriate error message
+    if (error.message.includes('ETXTBSY')) {
+      res.status(503).json({ 
+        error: 'Server busy', 
+        details: 'The server is currently busy processing other requests. Please try again in a few moments.',
+        originalError: error.message
+      });
+    } else {
+      res.status(500).json({ error: 'Failed to generate PDF', details: error.message });
+    }
   }
 }; 
