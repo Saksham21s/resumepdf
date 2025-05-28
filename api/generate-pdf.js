@@ -50,20 +50,22 @@ module.exports = async (req, res) => {
 
     console.log('Launching browser...');
     
-    // Launch headless browser using chromium with enhanced configuration
+    // Launch headless browser using chromium with memory-optimized configuration
     const browser = await puppeteer.launch({
       args: [
         ...chromium.args,
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
         '--single-process',
-        '--disable-gpu'
+        '--disable-gpu',
+        '--js-flags=--max-old-space-size=512'
       ],
-      defaultViewport: chromium.defaultViewport,
+      defaultViewport: {
+        width: 794,
+        height: 1123,
+        deviceScaleFactor: 1.5
+      },
       executablePath: await chromium.executablePath(),
       headless: chromium.headless,
       ignoreHTTPSErrors: true,
@@ -72,24 +74,15 @@ module.exports = async (req, res) => {
     // Create a new page
     const page = await browser.newPage();
     
-    // Set viewport to A4 size
-    await page.setViewport({
-      width: 794, // A4 width in pixels at 96 DPI
-      height: 1123, // A4 height in pixels at 96 DPI
-      deviceScaleFactor: 2, // Higher for better quality
-    });
-
-    // Set content
+    // Set content with optimized wait options
     await page.setContent(htmlContent, {
-      waitUntil: 'networkidle0',
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
     });
 
     // Wait for any fonts to load
     await page.evaluateHandle('document.fonts.ready');
     
-    // Wait a bit more to ensure everything is rendered
-    await page.waitForTimeout(1000);
-
     console.log('Generating PDF...');
     
     // Generate PDF
